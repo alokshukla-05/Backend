@@ -55,7 +55,8 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", async function (next){
     if(!this.isModified("password")) return next();
 
-    this.password = bcrypt.hash(this.password, 10)//10 matalb 10 time ho encrypt kare ga tum log ke uper 10 lena hai ki 2 lena hai
+    this.password = await bcrypt.hash(this.password, 10)
+    //10 matalb 10 time ho encrypt kare ga tum log ke uper 10 lena hai ki 2 lena hai
     next()
 })
 //custom method
