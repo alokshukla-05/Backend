@@ -21,7 +21,7 @@ const registerUser = asyncHandler( async (req, res) => {
     // 9.return res
 
     const {fullName, email, username, password} = req.body
-    console.log("email:", email);
+    //console.log("email:", email);
 
     //yese if else kar ke ek he check huwa ye first method hai check karne ka
     // if (fullName === ""){
@@ -30,7 +30,7 @@ const registerUser = asyncHandler( async (req, res) => {
 
     //2nd method validation
     if (
-        [fullName, email, username, password].some(() => field?.trim() === "")
+        [fullName, email, username, password].some((field) => field?.trim() === "")
     ) {
         throw new ApiError(400, " All fields are required")
     }
@@ -38,7 +38,7 @@ const registerUser = asyncHandler( async (req, res) => {
     //yaha pe hame chec kar rahe hai ki email already use toh ahi huwa hai ya username pheler se ya ye usser alraedy toh nahi hai
     //jaha jaha User ko call kare ge huwa mongoose automic call hoga oske baad o mongodb ko call kkare ga aur check karega
     // $ se ham bohot sare oprator use kar sakte hai
-    const exsitedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{ username }, { email }]
     })
 
@@ -49,10 +49,15 @@ const registerUser = asyncHandler( async (req, res) => {
     //jitna ho sake otna console.log karo
     //server ka file ka path
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    //const coverImageLocalPath = req.files?.coverImage[0]?.path; iso niche wale jese likh sakte hai
+
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
 
     if (!avatarLocalPath) {
-        throw ApiError(400, "Avatar file is required")
+        throw new ApiError(400, "Avatar file is required")
     }
 
     //cloudinary pe upload
@@ -60,7 +65,7 @@ const registerUser = asyncHandler( async (req, res) => {
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if (!avatar) {
-        throw ApiError(400, "Avatar file is required")
+        throw new ApiError(400, "Avatar file is required")
     }
 
     //user create in database

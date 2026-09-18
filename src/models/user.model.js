@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose,{Schema} from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema(
         },
         watchHistory: [
             {
-                type: Schema.Type.ObjectId,
+                type: Schema.Types.ObjectId,
                 ref: "Video"
             }
         ],
@@ -57,7 +57,7 @@ userSchema.pre("save", async function (next){
 
     this.password = await bcrypt.hash(this.password, 10)
     //10 matalb 10 time ho encrypt kare ga tum log ke uper 10 lena hai ki 2 lena hai
-    next()
+    
 })
 //custom method
 //password check
