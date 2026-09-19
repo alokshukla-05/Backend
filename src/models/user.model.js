@@ -52,8 +52,8 @@ const userSchema = new mongoose.Schema(
 //pre me kabhi bhi call function arrow me mat likhna
 //jab bhi password file ko chage ya save karu tabhi wor kare nahi name chage are toh pass fir se hash ho
 
-userSchema.pre("save", async function (next){
-    if(!this.isModified("password")) return next();
+userSchema.pre("save", async function (){
+    if(!this.isModified("password")) return;
 
     this.password = await bcrypt.hash(this.password, 10)
     //10 matalb 10 time ho encrypt kare ga tum log ke uper 10 lena hai ki 2 lena hai
