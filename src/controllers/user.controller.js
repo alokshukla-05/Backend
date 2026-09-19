@@ -4,6 +4,23 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+//access and refresh
+const generateAccessAndRefereshTokens = async(userId) => 
+{
+    try {
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save({validateBeforeSave: false })
+
+        return {accessToken,refreshToken}
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while generating referesh and access token")
+    }
+}
+
 const registerUser = asyncHandler( async (req, res) => {
     //basic code to see on postman
     // res.status(200).json({
@@ -94,4 +111,87 @@ const registerUser = asyncHandler( async (req, res) => {
     )
 })
 
-export { registerUser, }
+// here we write login code
+const loginUser = asyncHandler( async (req, res) => {
+    //Todos
+    //req body se data lekar aao
+    const {email, username, password} = req.body
+    // username ya email
+
+    if (!(username || email)) {
+        throw new ApiError(400,"username or email is required")
+    }
+    // find user
+    // $ ka sig e mongodb ka opertor hai
+    const user = await User.findOne({
+        $or: [{ username }, { email }]
+    })
+    if (!user) {
+        throw new ApiError(404, "User does ot exist")
+    }
+    //password check
+    //yaha pe User ye wal nahi use kara ku ki ye mogoose ka hai hame mogdb ne jo retu kiya hai o ham use kar sakte hai
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Invalid user credentials")
+    }
+    //access and refresh token generated tab user ko sed kar do cooies ke from me ye bohot use hota hai toh ye ham e method ya function bana lete hai os ko call kar lege toh top pe bana raha hu with name access and refresh
+    //see top then use here
+    const {accessToken, refreshToken} = await generateAccessAndRefereshTokens(user._id)
+
+    //user ko kya kya bhej na hai data
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+    // send secure cookies
+    const options = {
+        httpOnly: true,
+        secure: true // isse hame bus server se modifye kar sate hai froontend se kyu hame secure true kiya hai iss liye
+    }
+
+    return res
+    .status(200)
+    .cookie("accessToken",accessToken, options)
+    .cookie("refreshToken",refreshToken,options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user: loggedInUser,accessToken,refreshToken
+            },
+            "User logged In Successfully"
+        )
+    )
+
+})
+
+//logged out User code
+const logoutUser = asyncHandler( async(req, res) => {
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                refreshToken: undefined
+            }
+        },
+        {
+            new: true
+        }
+    )
+
+    const options = {
+        httpOnly: true,
+        secure: true // isse hame bus server se modifye kar sate hai froontend se kyu hame secure true kiya hai iss liye
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200,{},"User logged Out"))
+})
+
+export { 
+    registerUser, 
+    loginUser,
+    logoutUser
+}
