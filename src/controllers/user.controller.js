@@ -264,10 +264,18 @@ const changeCurrentPassword = asyncHandler( async(req, res) => {
     )
 })
 
+//agar user logged in hai to current user dekho
+const getCurrentUser = asyncHandler( async(req, res) => {
+    return res
+    .status(200)
+    .json(200, req.user,"Current user fetch successfully")
+})
+
 export { 
     registerUser, 
     loginUser,
     logoutUser,
     refreshAccessToken,
-    changeCurrentPassword
+    changeCurrentPassword,
+    getCurrentUser
 }
