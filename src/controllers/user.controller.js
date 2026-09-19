@@ -13,7 +13,7 @@ const generateAccessAndRefereshTokens = async(userId) =>
         const refreshToken = user.generateRefreshToken()
 
         user.refreshToken = refreshToken
-        await user.save({validateBeforeSave: false })
+        await user.save({ validateBeforeSave: false })
 
         return {accessToken,refreshToken}
     } catch (error) {
