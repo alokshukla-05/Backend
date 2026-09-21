@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
@@ -310,6 +310,9 @@ const updateUserAvatar = asyncHandler( async(req, res) => {
         throw new ApiError(400,"Avatar file is missing")
     }
 
+    //old avatar image ko delete here i have find old user
+    const oldUser = await User.findById(req.user?._id)
+
     const avatar = await uploadOnCloudinary(avatarLocalPath)
 
     if (!avatar.url) {
@@ -325,6 +328,11 @@ const updateUserAvatar = asyncHandler( async(req, res) => {
         },
         {new: true}
     ).select("-password")
+
+    //here i will delete old avatar image
+    if (oldUser?.avatar) {
+        await deleteFromCloudinary(oldUser.avatar)
+    }
 
     return res
     .status(200)
@@ -342,6 +350,9 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
         throw new ApiError(400,"coverImage file is missing")
     }
 
+    //old avatar image ko delete here i have find old user
+    const oldUser = await User.findById(req.user?._id)
+    
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if (!coverImage.url) {
@@ -357,6 +368,11 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
         },
         {new: true}
     ).select("-password")
+
+    //here i will delete old cver image
+    if (oldUser?.coverImage) {
+        await deleteFromCloudinary(oldUser.coverImage)
+    }
 
     return res
     .status(200)
