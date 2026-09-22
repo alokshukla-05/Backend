@@ -383,6 +383,94 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
     )
 })
 
+//agregation pipeline in mongodb
+const getUserChanelProfile = asyncHandler( async(req, res) => {
+    //agar kissi chanel a user ame nikal na hai toh kaha se mile ga toh o hame url se mile ga (params)
+    const { username } = req.params
+
+    //checking emmty toh nahi hai
+    if (!username?.trim()) {
+        throw new ApiError(400,"username is missing")
+    }
+
+    //toh hame idher ham aggregation pipeline laga ye ge or aggregation or ha aggregatetor ek method jo ki o Array leta hai
+    // await User.aggregate([{},{},{} .....]) jo {} ye ek pipeline hai
+
+    const channel = await User.aggregate([
+        //this is first pipeline and ? ye ek optional hai ye ek safety measure hai agar kuch nahi mial toh zero aaye ga
+        {
+            $match: {
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            //isse hame pta chale ge hamre itna subcribers hai
+            $lookup: {
+                from: "subscriptions", // kaha se
+                localField: "_id",
+                foreignField: "channel", //ye hame subscriptin model se laye hai
+                as: "subscribers" // yaha jo name de na hai de do
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions", // kaha se
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo" // yaha jo name de na hai de do
+            }
+        },
+        {
+            //abh yaha dono fields ko add kare ge plus or bhi kuch sath me add are ga or retur katre ga
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                channelSubscribedToCount: {
+                    $size : "$subscribedTo"
+                },
+                //jo $in hai ye array or object me se dekh leta hai
+                //user ko dihana hai na ki o subcribe kiya hai i nahi agar  iya hai toh osko true dekh nahi toh false
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?._id,"$subscribers.subscriber"]},
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            //$project kya kar ta hai ye sare value ko project nahi karta j selcted hai bus ose project karta hai
+            $project: {
+                fullName: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelSubscribedToCount: 1,
+                isSubscribed: 1,
+                coverImage: 1,
+                avatar: 1,
+                email: 1
+
+            }
+        }
+    ])
+
+    //yaha pe ek bar channel ko console log kar ke dekh na hai
+    //console.log(channel)
+    
+    //check karna hai ki data aya hai ki nahi
+    if (!channel?.length) {
+        throw new ApiError(404,"channel does not exist")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,channel[0],"User channel fetched successfully")
+    )
+})
+
 export { 
     registerUser,  
     loginUser,
@@ -392,5 +480,6 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChanelProfile
 }
