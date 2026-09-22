@@ -384,7 +384,7 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
 })
 
 //agregation pipeline in mongodb
-const getUserChanelProfile = asyncHandler( async(req, res) => {
+const getUserChannelProfile = asyncHandler( async(req, res) => {
     //agar kissi chanel a user ame nikal na hai toh kaha se mile ga toh o hame url se mile ga (params)
     const { username } = req.params
 
@@ -471,6 +471,60 @@ const getUserChanelProfile = asyncHandler( async(req, res) => {
     )
 })
 
+//watch history ke liye ye code hai yaha per bhi hame aggregation pipeline use kare ge
+const getWatchHistory = asyncHandler( async(req, res) => {
+    //interviwe clear karwaye gi
+    //req.user?._id isse hame kya mile ga toh hame strig milta hai per mongodb me th pura obejct("strig") ye pura id hai toh backend mongoose pura handle ar leta hai
+    // toh strig o kese convert karte hai
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup: {
+                from: "videos", //kaha se lookup karu matlab dekhu toh ye hame video ke model me mil jaye ga
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,user[0].watchHistory,"Watch History fetched successfullly")
+    )
+})
+
 export { 
     registerUser,  
     loginUser,
@@ -481,5 +535,6 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChanelProfile
+    getUserChannelProfile,
+    getWatchHistory
 }
