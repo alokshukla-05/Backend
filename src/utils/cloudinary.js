@@ -35,7 +35,7 @@ const deleteFromCloudinary = async (fileUrl) => {
         //extract public_id from url
         const publicId = fileUrl
         .split("/upload/")[1]
-        split("/")
+        .split("/")
         .slice(1)
         .join("/")
         .split(".")[0];
