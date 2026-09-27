@@ -1,14 +1,14 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
-import {publishAVideo,getAllVideos} from "../controllers/video.controller.js";
+import {publishAVideo,getAllVideos,getVideoById,deleteVideo,updateVideo,togglePublishStatus} from "../controllers/video.controller.js";
 
 const router = Router()
 router.use(verifyJWT);
 
 router
     .route("/")
-    .get(getAllVideo)
+    .get(getAllVideos)
     .post(
         upload.fields([
             {
@@ -16,7 +16,7 @@ router
                 maxCount: 1
             },
             {
-                name: "thumnail",
+                name: "thumbnail",
                 maxCount: 1,
             }
         ]),
@@ -27,7 +27,7 @@ router
     .route("/:videoId")
     .get(getVideoById)
     .delete(deleteVideo)
-    .patch(upload.single("thumnail"), updateVideo);
+    .patch(upload.single("thumbnail"), updateVideo);
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 

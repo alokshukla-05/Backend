@@ -7,7 +7,7 @@ import {asyncHandler} from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler( async(req, res) => {
-    const {page = 1, limit = 10, query, sortBy,sortType, userId} = req.query
+    const {page = 1, limit = 10, query, sortBy = "createdAt",sortType = "desc", userId} = req.query
 
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
@@ -30,12 +30,12 @@ const getAllVideos = asyncHandler( async(req, res) => {
         });
     }
 
-    if (user._id) {
-        if (!isValidObjcetId(user._id)) {
+    if (userId) {
+        if (!isValidObjcetId(userId)) {
             throw new ApiError(400,"Invalid user Id")
         }
         pipeline.push({
-            $match: { owner: new mongoose.Types.ObjectId(user._id) }
+            $match: { owner: new mongoose.Types.ObjectId(userId) }
         })
     }
 
@@ -92,20 +92,20 @@ const publishAVideo = asyncHandler( async(req, res) => {
     }
 
     const videoLocalPath = req.files?.videoFile[0]?.path;
-    const thumbnailLocalPath = req.files?.thumnail[0]?.path;
+    const thumbnailLocalPath = req.files?.thumbnail[0]?.path;
 
     if (!thumbnailLocalPath) {
-        throw new ApiError(400,"Thumnail is required")
+        throw new ApiError(400,"Thumbnail is required")
     }
     if (!videoLocalPath) {
         throw new ApiError(400,"Video files are required")
     }
 
     const video = await uploadOnCloudinary(videoLocalPath)
-    const thumnail = await uploadOnCloudinary(thumbnailLocalPath)
+    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
 
-    if (!thumnail) {
-        throw new ApiError(500,"Error uploading Thumnail on cloudinary")
+    if (!thumbnail) {
+        throw new ApiError(500,"Error uploading Thumbnail on cloudinary")
     }
     if (!video) {
         throw new ApiError(500,"Error uploading video on cloudinary")
@@ -115,7 +115,7 @@ const publishAVideo = asyncHandler( async(req, res) => {
         title,
         description,
         videoFile: video.url,
-        thumnail: thumnail.url,
+        thumbnail: thumbnail.url,
         duration: video.duration,
         owner: req.user?._id,
         isPublished: true,
@@ -127,6 +127,8 @@ const publishAVideo = asyncHandler( async(req, res) => {
         new ApiResponse(200,newVideo,"Video published successfully")
     )
 })
+
+//
 
 export {
     publishAVideo,
