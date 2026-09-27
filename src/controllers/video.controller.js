@@ -4,7 +4,7 @@ import {User} from "../models/user.model.js";
 import {ApiError} from "../utils/ApiError.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 import {asyncHandler} from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler( async(req, res) => {
     const {page = 1, limit = 10, query, sortBy = "createdAt",sortType = "desc", userId} = req.query
@@ -128,9 +128,154 @@ const publishAVideo = asyncHandler( async(req, res) => {
     )
 })
 
-//
+//here we search video by ID
+const getVideoById = asyncHandler( async (req, res) => {
+    const {videoId} = req.params
+
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400,"Invalid video Id")
+    }
+
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        { $inc: {views:1} },
+        {new: true}
+    ).populate("owner","username fullName avatar")
+
+    if (!video) {
+        throw new ApiError(404,"Video not Found")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,video,"Video fetched successfully")
+    )
+})
+
+//here will will update video
+const updateVideo = asyncHandler( async(req, res) => {
+    const {videoId} = req.params
+    const {title,description} = req.body
+
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400,"Invalid video id")
+    }
+
+    if (!(title || description)) {
+        throw new ApiError(400,"Title and description is required")
+    }
+
+    const video = await Video.findById(videoId)
+    if(!video){
+        throw new ApiError(404,"video is not found")
+    }
+
+    //for owner
+    if (video.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError(403,"you are not authorized to update this video")
+    }
+
+    const thumbnailLocalPath = req.file?.path;
+
+    let thumbnail;
+    if(thumbnailLocalPath){
+        thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
+        if (!thumbnail) {
+            throw new ApiError(500,"error uploading new thumbnail")
+        }
+        //here i will delete persove thumbnail from cloudinary
+        await deleteFromCloudinary(video.thumbnail,"image")
+    }
+
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: {
+                title: title || video.title,
+                description: description || video.description,
+                thumbnail: thumbnail?.url || video.thumbnail,
+            },
+        },
+        {new: true}
+    )
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,updatedVideo,"video updated successfully")
+    )
+})
+
+//delete video
+const deleteVideo = asyncHandler( async(req, res) => {
+    const {videoId} = req.params
+
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(400,"Invalid videoId")
+    }
+
+    const video = await Video.findById(videoId)
+    if(!video){
+        throw new ApiError(404,"video not found")
+    }
+
+    //owner can delete video
+    if(video.owner.toString() !== req.user?._id.toString()){
+        throw new ApiError(403,"you are not authorized to delete this video")
+    }
+
+    await deleteFromCloudinary(video.videoFile,"video")
+    await deleteFromCloudinary(video.thumbnail,"image")
+
+    await Video.findByIdAndDelete(videoId)
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,{},"video deleted successfully")
+    )
+})
+
+//toggle publish status
+const togglePublishStatus = asyncHandler( async (req, res) => {
+    const {videoId} = req.params
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(400,"Invalid videoId")
+    }
+
+    const video = await Video.findById(videoId)
+    if(!video){
+        throw new ApiError(404,"video not found")
+    }
+
+    //owner can toggle video
+    if(video.owner.toString() !== req.user?._id.toString()){
+        throw new ApiError(403,"you are not authorized to delete this video")
+    }
+
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        {$set: {isPublished: !video.isPublished}},
+        {new: true}
+    )
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            updatedVideo,
+            `Video ${updatedVideo.isPublished ? "published" : "unpublished"}`
+        )
+    )
+})
 
 export {
     publishAVideo,
-    getAllVideos
+    getAllVideos,
+    getVideoById,
+    updateVideo,
+    deleteVideo,
+    togglePublishStatus
 }
