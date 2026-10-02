@@ -14,7 +14,7 @@ const toggleSubcription = asyncHandler( async(req, res) => {
 
     //check yourself because khud ko subscribe nahi kar sakte hai
     if (channelId === req.user._id.toString()) {
-        throw new ApiError(400,"You can't subcribe yourself")
+        throw new ApiError(400,"You can not subcribe yourself")
     }
 
     const channel = await User.findById(channelId)

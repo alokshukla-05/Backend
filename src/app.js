@@ -26,7 +26,7 @@ import  subscriptionRouter  from './routes/subscription.routes.js';
 app.use("/api/v1/users", userRouter)
 app.use("/api/v1/videos",videoRouter)
 app.use("/api/v1/tweets",tweetRouter)
-app.use("/api/v1/subscription",subscriptionRouter)
+app.use("/api/v1/subscriptions",subscriptionRouter)
 //working http://localhost:8000/api/v1/users/register
 
 
